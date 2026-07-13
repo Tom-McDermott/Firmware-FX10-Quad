@@ -164,8 +164,17 @@ ehthumbs_vista.db
 # --- Quad project additions ---
 # ninja build log written at the project root
 .ninja_log
-# Bulky vendor-generated API docs (regenerable, not needed to build)
-bsps/**/docs/html/
-# Reproducibility note: this repo tracks libs/ and bsps/**/config/GeneratedSource/
-# (see notes above) plus the app-local FX10 BSP, so a fresh clone + the sibling
-# ../mtb_shared symlink builds with no `make getlibs`/configurator regeneration.
+#
+# BSP / toolchain / library scaffolding.
+# The canonical repo (origin/main) does NOT track these: a full ModusToolbox
+# checkout regenerates them (`make getlibs` + Device Configurator). This offline
+# working tree keeps local copies (restored from before the repo's cleanup
+# commit) so it can build against the sibling ../mtb_shared symlink without
+# regeneration — but they are ignored here so they don't appear as untracked or
+# get re-committed. Use `git add -f <path>` if a specific file must be tracked.
+bsps/
+LinkerScripts/
+libs/
+deps/
+templates/
+bootloader/
