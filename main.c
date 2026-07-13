@@ -105,7 +105,6 @@ void Cy_LVDS_GpifEventCb (uint8_t smNo, cy_en_lvds_gpif_event_type_t gpifEvent, 
  ****************************************************************************/
 void Cy_LVDS_PhyEventCb (uint8_t smNo, cy_en_lvds_phy_events_t phyEvent, void *cntxt)
 {
-    cy_en_scb_i2c_status_t status;
     cy_stc_usb_app_ctxt_t *pAppCtxt = (cy_stc_usb_app_ctxt_t *)cntxt;
 
     if (pAppCtxt == NULL) {
@@ -131,21 +130,16 @@ void Cy_LVDS_PhyEventCb (uint8_t smNo, cy_en_lvds_phy_events_t phyEvent, void *c
 
     if (phyEvent == CY_LVDS_PHY_LNK_TRAIN_BLK_DET)
     {
-        DBG_APP_INFO("Port %d Training Block Detected\r\n",smNo);
-        if (smNo)
-        {
-            pAppCtxt->isLinkTrainingDone |= (1 << smNo);
-            SET_BIT(pAppCtxt->fpgaTrainingCtrl, P1_TRAINING_DONE);
-        }
-        else
-        {
-            pAppCtxt->isLinkTrainingDone |= (1 << smNo);
-            SET_BIT(pAppCtxt->fpgaTrainingCtrl, P0_TRAINING_DONE);
-        }
-
-        status = Cy_I2C_Write(FPGASLAVE_ADDR, FPGA_PHY_LINK_CONTROL_ADDRESS,
-                pAppCtxt->fpgaTrainingCtrl, FPGA_I2C_ADDRESS_WIDTH, FPGA_I2C_DATA_WIDTH);
-        ASSERT_NON_BLOCK(status == CY_SCB_I2C_SUCCESS, status);
+        /*
+         * Quad board: the FPGA has no I2C control interface (see
+         * interface-contract-RESOLVED.md §1.4/§4), so unlike the base example we
+         * do NOT hand-shake training completion back over I2C. We only record the
+         * per-link block-detect here; Cy_QuadStream_Start() polls
+         * isLinkTrainingDone and, on lock, deasserts the discrete LinkTrain
+         * (P4.3) so the FPGA reverts to data mode.
+         */
+        DBG_APP_INFO("Port %d Training Block Detected\r\n", smNo);
+        pAppCtxt->isLinkTrainingDone |= (1 << smNo);
     }
 
     if (phyEvent == CY_LVDS_PHY_LNK_TRAIN_BLK_DET_FAIL)
@@ -1294,6 +1288,22 @@ void InitLvdsInterface (cy_stc_usb_app_ctxt_t *pAppCtxt)
 }
 
 /*****************************************************************************
+ * Function Name: Cy_Quad_LvdsDeinit
+ *****************************************************************************
+ *
+ * Tear down the LVDS interface so that a subsequent START_STREAM can bring it
+ * up and retrain from a clean state. Called from Cy_QuadStream_Stop() and on a
+ * failed training attempt (see quad_stream.c).
+ *
+ ****************************************************************************/
+void Cy_Quad_LvdsDeinit (void)
+{
+    Cy_LVDS_Disable(LVDSSS_LVDS);
+    Cy_LVDS_Deinit(LVDSSS_LVDS, 0, &lvdsContext);
+    DBG_APP_INFO("LVDS de-init complete\r\n");
+}
+
+/*****************************************************************************
  * Function Name: UsbSSConnectionEnable
  *****************************************************************************
  *
@@ -1393,48 +1403,25 @@ UsbDeviceTaskHandler (void *pTaskParam)
 
     DBG_APP_INFO("LVDS to USB app task started\r\n");
 
-#if (!LVDS_LB_EN)
-#if FPGA_CONFIG_EN
-    Cy_FPGAConfigPins(pAppCtxt,FPGA_CONFIG_MODE);
-    Cy_QSPI_Start(pAppCtxt,&HBW_BufMgr);
-    Cy_SPI_FlashInit(SPI_FLASH_0, true, false);
+    /*
+     * Quad board: the base example's boot path here configured an Efinix Ti180
+     * over QSPI (FPGA_CONFIG_EN) and/or handshook PHY/LINK training into the FPGA
+     * over I2C (Cy_Usb_FpgaPhyLinkTrain_Info / Cy_ConfigFpgaRegister). Neither
+     * applies to the Quad receiver: our Xilinx Artix-7 is loaded by the host via
+     * slave-serial (FPGA_LOAD) and has no I2C control interface
+     * (interface-contract-RESOLVED.md §1.4). That block — including its
+     * while(1) hang on I2C failure — has been removed so it cannot stall boot.
+     */
 
-    if(Cy_FPGAConfigure(pAppCtxt,FPGA_CONFIG_MODE) == true)
-    {
-        DBG_APP_INFO("FPGA configuration complete \r\n");
-        pAppCtxt->isFpgaConfigured = true;
-    }
-    else
-    {
-        LOG_ERROR("Failed to configure FPGA \r\n");
-    }
-
-#else
-    if(true == Cy_IsFPGAConfigured())
-    {
-        pAppCtxt->isFpgaConfigured = true;
-    }
-#endif /* FPGA_CONFIG_EN */
-
-    if ((pAppCtxt->isFpgaRegConfigured == false) && (pAppCtxt->isFpgaConfigured == true)) {
-        /* Set the PHY and LINK training settings in the FPGA registers. */
-        Cy_Usb_FpgaPhyLinkTrain_Info(pAppCtxt);
-
-        if (0 == Cy_ConfigFpgaRegister()) {
-            pAppCtxt->isFpgaRegConfigured = true;
-            DBG_APP_INFO("Successfully configured Ti180 FPGA via I2C\n\r");
-            vTaskDelay(50);
-        } else {
-            LOG_ERROR("Failed to configure FPGA via I2C \r\n");
-            while (1) {
-                vTaskDelay(100);
-            }
-        }
-    }
-#endif /* (!LVDS_LB_EN) */
-
-    /* Initialize the LVDS interface. */
-    InitLvdsInterface(pAppCtxt);
+    /*
+     * The LVDS interface is NOT brought up here. Link training needs
+     * the FPGA loaded (FPGA_LOAD), the Si5345 running (SI5345_LOAD, supplies the
+     * 125 MHz DDR data clock the LVCMOS PHY slaves to) and the ADCs configured —
+     * all of which only happen after the host issues its EP0 setup commands. LVDS
+     * init + PHY/LINK training is therefore deferred into Cy_QuadStream_Start(),
+     * invoked by the START_STREAM (0xAA) vendor command. USB enumeration below
+     * comes up immediately so the EP0 command set works from power-up.
+     */
 
     /* Initialize application layer. */
     Cy_USB_AppInit(pAppCtxt, &usbdCtxt, DMAC, DW0, DW1, &HBW_MgrCtxt);

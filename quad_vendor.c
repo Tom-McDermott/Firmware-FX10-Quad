@@ -25,6 +25,7 @@
 #include "quad_fpga.h"
 #include "quad_si5345.h"
 #include "quad_adc.h"
+#include "quad_stream.h"
 #include "cy_usb_i2c.h"
 #include <string.h>
 
@@ -112,6 +113,22 @@ bool Cy_Quad_VendorRqtHandler(cy_stc_usb_app_ctxt_t *pAppCtxt)
     uint16_t wLength  = pUsbdCtxt->setupReq.wLength;
 
     switch (bRequest) {
+        case QUAD_CMD_START_STREAM:
+            /*
+             * Assert LinkTrain, train both LVDS links, then start the
+             * LVDS->EP1-IN data path. Training blocks up to
+             * QUAD_TRAIN_TIMEOUT_MS; ACK the (no-data) request afterwards.
+             * Success/failure is reported via GET_STATUS (state / last_error).
+             */
+            (void)Cy_QuadStream_Start(pAppCtxt);
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            return true;
+
+        case QUAD_CMD_STOP_STREAM:
+            Cy_QuadStream_Stop(pAppCtxt);
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            return true;
+
         case QUAD_CMD_PING: {
             /* Return the magic word so the host can confirm two-way comms. */
             uint32_t beat = QUAD_STATUS_MAGIC;
