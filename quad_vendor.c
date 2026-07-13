@@ -25,6 +25,7 @@
 #include "quad_fpga.h"
 #include "quad_si5345.h"
 #include "quad_adc.h"
+#include "cy_usb_i2c.h"
 #include <string.h>
 
 /*
@@ -125,6 +126,84 @@ bool Cy_Quad_VendorRqtHandler(cy_stc_usb_app_ctxt_t *pAppCtxt)
         case QUAD_CMD_GET_STATUS:
             return quad_send_ep0(pUsbdCtxt, &glQuadStatus,
                                  (uint16_t)sizeof(glQuadStatus), wLength);
+
+        case QUAD_CMD_RESET:
+            /* RX888-compatible reset: ACK, wait (wValue+1) ms, then reset. */
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            Cy_SysLib_Delay((uint32_t)pUsbdCtxt->setupReq.wValue + 1u);
+            NVIC_SystemReset();
+            return true;                 /* not reached */
+
+        case QUAD_CMD_GPIO_WRITE: {
+            /* wValue bit0 = level; wIndex = (portNum << 8) | pinNum. */
+            uint8_t  port  = (uint8_t)(pUsbdCtxt->setupReq.wIndex >> 8);
+            uint8_t  pin   = (uint8_t)(pUsbdCtxt->setupReq.wIndex & 0xFFu);
+            uint8_t  level = (uint8_t)(pUsbdCtxt->setupReq.wValue & 0x1u);
+            cy_stc_gpio_pin_config_t cfg;
+
+            memset((void *)&cfg, 0, sizeof(cfg));
+            cfg.driveMode = CY_GPIO_DM_STRONG_IN_OFF;
+            cfg.hsiom     = HSIOM_SEL_GPIO;
+            cfg.outVal    = level;
+            (void)Cy_GPIO_Pin_Init(Cy_GPIO_PortToAddr(port), pin, &cfg);
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            return true;
+        }
+
+        case QUAD_CMD_GPIO_READ: {
+            /* wIndex = (portNum << 8) | pinNum; returns 1 byte (level). */
+            uint8_t  port = (uint8_t)(pUsbdCtxt->setupReq.wIndex >> 8);
+            uint8_t  pin  = (uint8_t)(pUsbdCtxt->setupReq.wIndex & 0xFFu);
+            cy_stc_gpio_pin_config_t cfg;
+            uint8_t  level;
+
+            memset((void *)&cfg, 0, sizeof(cfg));
+            cfg.driveMode = CY_GPIO_DM_HIGHZ;
+            cfg.hsiom     = HSIOM_SEL_GPIO;
+            (void)Cy_GPIO_Pin_Init(Cy_GPIO_PortToAddr(port), pin, &cfg);
+            level = (uint8_t)Cy_GPIO_Read(Cy_GPIO_PortToAddr(port), pin);
+            return quad_send_ep0(pUsbdCtxt, &level, 1u, wLength);
+        }
+
+        case QUAD_CMD_I2C_WRITE: {
+            /* wValue = 7-bit addr; wIndex = (addrWidth<<8)|reg; data = 1 byte. */
+            uint16_t addr      = pUsbdCtxt->setupReq.wValue;
+            uint8_t  addrWidth = (uint8_t)(pUsbdCtxt->setupReq.wIndex >> 8);
+            uint8_t  reg       = (uint8_t)(pUsbdCtxt->setupReq.wIndex & 0xFFu);
+
+            if ((wLength == 0u) || (wLength > sizeof(glQuadRxBuf))) {
+                return false;
+            }
+            if (!quad_recv_ep0(pUsbdCtxt, glQuadRxBuf, wLength)) {
+                return true;
+            }
+            if (Cy_I2C_Write(addr, reg, glQuadRxBuf[0], addrWidth, 1)
+                    != CY_SCB_I2C_SUCCESS) {
+                glQuadStatus.last_error = QUAD_ERR_I2C_NAK;
+            }
+            return true;
+        }
+
+        case QUAD_CMD_I2C_READ: {
+            /* wValue = 7-bit addr; wIndex = (addrWidth<<8)|reg; read wLength bytes.
+             * NOTE: Cy_I2C_Read requires addrWidth 1 or 2 (register-based); a
+             * register-less pure read (e.g. PCF8574) is not yet supported. */
+            uint16_t addr      = pUsbdCtxt->setupReq.wValue;
+            uint8_t  addrWidth = (uint8_t)(pUsbdCtxt->setupReq.wIndex >> 8);
+            uint8_t  reg       = (uint8_t)(pUsbdCtxt->setupReq.wIndex & 0xFFu);
+            uint16_t n         = wLength;
+
+            if ((n == 0u) || (n > sizeof(glQuadEp0Buf))) {
+                return false;
+            }
+            if (Cy_I2C_Read(addr, reg, glQuadEp0Buf, addrWidth, (uint8_t)n)
+                    != CY_SCB_I2C_SUCCESS) {
+                glQuadStatus.last_error = QUAD_ERR_I2C_NAK;
+                return false;            /* stall to signal the read failed */
+            }
+            return (Cy_USB_USBD_SendEndp0Data(pUsbdCtxt, glQuadEp0Buf, n)
+                    == CY_USBD_STATUS_SUCCESS);
+        }
 
         case QUAD_CMD_SI5345_LOAD: {
             /* wValue = phase; data stage = {page,reg,data} records. */
