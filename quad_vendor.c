@@ -23,6 +23,7 @@
 #include "cy_usb_app.h"
 #include "quad_vendor.h"
 #include "quad_fpga.h"
+#include "quad_si5345.h"
 #include <string.h>
 
 /*
@@ -123,6 +124,30 @@ bool Cy_Quad_VendorRqtHandler(cy_stc_usb_app_ctxt_t *pAppCtxt)
         case QUAD_CMD_GET_STATUS:
             return quad_send_ep0(pUsbdCtxt, &glQuadStatus,
                                  (uint16_t)sizeof(glQuadStatus), wLength);
+
+        case QUAD_CMD_SI5345_LOAD: {
+            /* wValue = phase; data stage = {page,reg,data} records. */
+            uint16_t phase = pUsbdCtxt->setupReq.wValue;
+
+            if ((wLength == 0u) || (wLength > sizeof(glQuadRxBuf))) {
+                return false;
+            }
+            if (!quad_recv_ep0(pUsbdCtxt, glQuadRxBuf, wLength)) {
+                return true;
+            }
+            /* Reset the device once, just before the preamble block. */
+            if (phase == QUAD_SI5345_PHASE_PREAMBLE) {
+                Cy_QuadSi5345_ResetPulse();
+            }
+            (void)Cy_QuadSi5345_WriteRecords(glQuadRxBuf, wLength);
+            return true;
+        }
+
+        case QUAD_CMD_SI5345_DELAY:
+            /* Optional firmware-side delay (wValue ms); host sleep is preferred. */
+            Cy_SysLib_Delay(pUsbdCtxt->setupReq.wValue);
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            return true;
 
         case QUAD_CMD_FPGA_RESET: {
             /* Pulse PROGRAM_B and wait for INIT_B; no data stage. */
