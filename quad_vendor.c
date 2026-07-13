@@ -24,6 +24,7 @@
 #include "quad_vendor.h"
 #include "quad_fpga.h"
 #include "quad_si5345.h"
+#include "quad_adc.h"
 #include <string.h>
 
 /*
@@ -177,6 +178,27 @@ bool Cy_Quad_VendorRqtHandler(cy_stc_usb_app_ctxt_t *pAppCtxt)
             }
             return true;
         }
+
+        case QUAD_CMD_ADC_CONFIG: {
+            /* wValue = device select (0 both / 1 AB / 2 CD); data = {addr,data}. */
+            uint16_t dev = pUsbdCtxt->setupReq.wValue;
+
+            if ((wLength == 0u) || (wLength > sizeof(glQuadRxBuf))) {
+                return false;
+            }
+            if (!quad_recv_ep0(pUsbdCtxt, glQuadRxBuf, wLength)) {
+                return true;
+            }
+            Cy_QuadAdc_WriteRecords((uint8_t)dev, glQuadRxBuf, wLength);
+            glQuadStatus.adc_configured = 1u;
+            return true;
+        }
+
+        case QUAD_CMD_ADC_TESTPAT:
+            /* wValue = mode (0 off / 1 ramp); no data stage. */
+            Cy_QuadAdc_SetTestPattern((uint8_t)pUsbdCtxt->setupReq.wValue);
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            return true;
 
         case QUAD_CMD_FPGA_STATUS: {
             /* 8-byte poll: [initB, lastError, 0, 0, bytesLoaded(u32 LE)]. */
