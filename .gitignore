@@ -162,6 +162,8 @@ ehthumbs_vista.db
 !bootloader/bin/fx_bl_cm0p.hex
 
 # --- Quad project additions ---
+# ninja build log written at the project root
+.ninja_log
 # Bulky vendor-generated API docs (regenerable, not needed to build)
 bsps/**/docs/html/
 # Reproducibility note: this repo tracks libs/ and bsps/**/config/GeneratedSource/

@@ -44,9 +44,9 @@ USB3_DESC_ATTRIBUTES uint8_t CyFxUSB20DeviceDscr[] =
     0x40,                           /* Maxpacket size for EP0 : 64 bytes */
     0xB4,0x04,                      /* Vendor ID */
 #if USE_WINUSB
-    0x07,0x48,                      /* Product ID */
+    0xF7,0x00,                      /* Product ID (quad: 0x00F7) */
 #else
-    0xF1,0x00,                      /* Product ID */
+    0xF7,0x00,                      /* Product ID (quad: 0x00F7) */
 #endif /* USE_WINUSB */
     0x00,0x00,                      /* Device release number */
     0x01,                           /* Manufacture string index */
@@ -67,9 +67,9 @@ USB3_DESC_ATTRIBUTES uint8_t CyFxUSB30DeviceDscr[] =
     0x09,                           /* Maxpacket size for EP0 : 2^9 */
     0xB4,0x04,                      /* Vendor ID */
 #if USE_WINUSB
-    0x07,0x48,                      /* Product ID */
+    0xF7,0x00,                      /* Product ID (quad: 0x00F7) */
 #else
-    0xF0,0x00,                      /* Product ID */
+    0xF7,0x00,                      /* Product ID (quad: 0x00F7) */
 #endif /* USE_WINUSB */
     0x00,0x00,                      /* Device release number */
     0x01,                           /* Manufacture string index */

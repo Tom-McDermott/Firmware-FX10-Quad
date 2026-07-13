@@ -40,6 +40,7 @@
 #include "cy_lvds.h"
 #include <string.h>
 #include "cy_lvds.h"
+#include "quad_vendor.h"
 
 /* Buffer used for debug control transfers. */
 __attribute__ ((section(".hbBufSection"), used)) uint32_t Ep0TempBuffer[1024U] __attribute__ ((aligned (32)));
@@ -1682,6 +1683,11 @@ void Cy_USB_AppVendorRqtHandler (cy_stc_usb_app_ctxt_t *pAppCtxt)
         {
             DBG_APP_ERR("EP0FAIL\r\n");
         }
+    }
+
+    /* Quad-specific vendor commands (Si5345/FPGA/ADC/AGC/status). */
+    if (!isReqHandled) {
+        isReqHandled = Cy_Quad_VendorRqtHandler(pAppCtxt);
     }
 
     if (!isReqHandled) {
