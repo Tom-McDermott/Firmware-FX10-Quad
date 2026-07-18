@@ -561,14 +561,14 @@ void InitPeripherals (void)
     pinCfg.hsiom = HSIOM_SEL_GPIO;
    (void)Cy_GPIO_Pin_Init(TI180_CDONE_PORT, TI180_CDONE_PIN, &pinCfg);
 
-    /* Configure RESET FPGA GPIO. */
-    pinCfg.driveMode = CY_GPIO_DM_STRONG_IN_OFF;
-    pinCfg.hsiom     = TI180_INIT_RESET_GPIO;
-    (void)Cy_GPIO_Pin_Init(TI180_INIT_RESET_PORT, TI180_INIT_RESET_PIN, &pinCfg);
-
-    Cy_GPIO_Clr(TI180_INIT_RESET_PORT, TI180_INIT_RESET_PIN);
-    Cy_SysLib_Delay(20);
-    Cy_GPIO_Set(TI180_INIT_RESET_PORT, TI180_INIT_RESET_PIN);
+    /*
+     * P4.3 is the discrete LinkTrain output (interface-contract-RESOLVED.md §1.2),
+     * owned exclusively by quad_stream.c (QUAD_LINKTRAIN, configured deasserted in
+     * START_STREAM). The base example drove P4.3 here as an Efinix "TI180_INIT_RESET"
+     * pulse, but there is no Efinix Ti180 on the Quad board (Xilinx Artix-7), and
+     * driving it at boot spuriously asserted LinkTrain. Removed so quad_stream is the
+     * sole owner of P4.3.
+     */
 
     /* Register edge detect interrupt for Vbus detect GPIO. */
     intrCfg.intrSrc = VBUS_DETECT_GPIO_INTR;
