@@ -1,0 +1,87 @@
+TAPR End-User License Agreement For Infineon Firmware, Drivers,
+and Host Applications
+
+This End-User License Agreement ("Agreement") is between TUCSON AMATEUR
+PACKET RADIO, INC., an Arizona corporation ("Licensor"), and the person
+or entity accessing or using the Software ("Licensee"). By installing,
+copying, or using the Software, Licensee agrees to be bound by this
+Agreement.
+
+1. Definitions
+"Software" means the firmware, drivers, and host applications in binary 
+form provided by TAPR for use with Infineon products, together with any 
+associated documentation.
+
+2. License Grant
+Subject to the terms of this Agreement, Licensor grants Licensee a
+non-exclusive, worldwide, royalty-free, perpetual license to: (a) 
+install and execute the Software on any number of devices; and (b)
+make a reasonable number of copies solely for archival and backup
+purposes.  No other rights are granted, whether by implication, estoppel, 
+or otherwise.
+
+3. No Source Code; Reservation of Rights
+The Software is licensed, not sold. Licensor and its licensors retain
+all right, title, and interest in and to the Software, including all
+intellectual property rights therein. No source code is provided under
+this license, and nothing in this Agreement shall be construed as granting 
+any right to source code.  Notwithstanding the foregoing, if Licensor
+make some elements of the Software available in source code form such 
+elements will be subject to the license terms provided with them.
+
+4. Restrictions
+Licensee shall not, and shall not permit any third party to:
+
+(a) except, and only to the extent, explicitly permitted by applicable
+law despite this limitation, decompile, translate, reverse engineer,
+disassemble, or otherwise reduce the Software to human-readable form;
+(b) remove or alter any proprietary notices or labels on the Software;
+or (c) use the Software in violation of applicable export control or
+sanctions laws.
+
+5. Third-Party Notices
+The Software incorporates code originally licensed under the Apache
+License, Version 2.0, and possibly other third-party open source
+components. A complete list of such components, their copyright notices,
+and applicable license texts is provided in the accompanying
+THIRD-PARTY-NOTICES.txt, which is incorporated by reference. Nothing in 
+this Agreement limits any rights granted under those third-party licenses 
+with respect to the original source code, to the extent such rights 
+survive independently of this Agreement.
+
+6. Disclaimer of Warranties
+THE SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
+NON-INFRINGEMENT. LICENSOR AND ITS LICENSORS DO NOT WARRANT THAT THE
+SOFTWARE WILL BE ERROR-FREE OR UNINTERRUPTED.
+
+7. Limitation of Liability
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL
+LICENSOR, ITS LICENSORS, OR ITS OR THEIR RESPECTIVE SUPPLIERS BE LIABLE
+FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE
+DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE, ARISING OUT OF
+OR RELATED TO THIS AGREEMENT OR THE SOFTWARE, REGARDLESS OF THE THEORY
+OF LIABILITY, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+LICENSOR'S AND ITS LICENSORS' TOTAL AGGREGATE LIABILITY ARISING OUT OF
+THIS AGREEMENT SHALL NOT EXCEED THE AMOUNT PAID BY LICENSEE FOR THE
+SOFTWARE AT ISSUE.
+
+8. Term and Termination
+This Agreement is effective until terminated. Licensor may terminate
+this Agreement immediately if Licensee breaches Section 4. Sections 3
+and 5–10 survive termination.
+
+9. No Support Obligation
+Licensor has no obligation under this Agreement to provide maintenance,
+updates, or support for the Software.
+
+10. General
+(a)  This Agreement is governed by the laws of Connecticut, without 
+regard to conflict-of-laws principles.
+
+(b)  If any provision is held unenforceable, the remainder of the 
+Agreement remains in effect.  
+
+(c)  This Agreement, together with any incorporated notices, constitutes 
+the entire agreement between the parties regarding the Software.
