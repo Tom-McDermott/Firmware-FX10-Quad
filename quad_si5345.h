@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2026 [COPYRIGHT HOLDER TBD]
+ * Copyright (c) 2026 TAPR (Tucson Amateur Packet Radio Corporation)
+ *
+ * This software was created by a human being with assistance from Claude.ai.
  *
  * SPDX-License-Identifier: Apache-2.0
  *

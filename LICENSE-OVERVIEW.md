@@ -6,8 +6,8 @@
 > override the actual license files.** The governing terms are only in those
 > files:
 > - `TAPR_LICENSE.TXT`
-> - `INFINEON_LICENSE.txt`
-> - `APACHE-LICENSE-2.0.txt`
+> - `licenses/INFINEON_LICENSE.txt`
+> - `licenses/APACHE-LICENSE-2.0.txt`
 > - `THIRD-PARTY-NOTICES.txt`
 > - the license header in each individual source file
 >
@@ -50,7 +50,7 @@ reverse-engineer or disassemble them to make them do so.
 ## What this is, and is not
 
 - **TAPR is not reselling Infineon's software.** The Infineon/Cypress code remains
-  under its own licenses (see `INFINEON_LICENSE.txt` and `THIRD-PARTY-NOTICES.txt`).
+  under its own licenses (see `licenses/INFINEON_LICENSE.txt` and `THIRD-PARTY-NOTICES.txt`).
   TAPR is distributing firmware for an amateur-radio receiver, not repackaging or
   selling Infineon's SDK.
 - **The open-source parts stay open source.** Putting a binary EULA on the compiled
@@ -58,9 +58,5 @@ reverse-engineer or disassemble them to make them do so.
   grant you in the corresponding **source** files.
 - **Read the actual licenses.** This page is a map, not the territory. Before you
   redistribute, modify, or build products on top of this, read
-  `TAPR_LICENSE.TXT`, `INFINEON_LICENSE.txt`, `APACHE-LICENSE-2.0.txt`, and
-  `THIRD-PARTY-NOTICES.txt`.
-
----
-
-*[DRAFT for careful review by Tom (N5EG) and John Ackermann before publishing.]*
+  `TAPR_LICENSE.TXT`, `licenses/INFINEON_LICENSE.txt`,
+  `licenses/APACHE-LICENSE-2.0.txt`, and `THIRD-PARTY-NOTICES.txt`.
