@@ -44,6 +44,7 @@
 #include "quad_fpga.h"
 #include "quad_si5345.h"
 #include "quad_adc.h"
+#include "quad_agc.h"
 #include "quad_stream.h"
 #include "cy_usb_i2c.h"
 #include <string.h>
@@ -327,6 +328,18 @@ bool Cy_Quad_VendorRqtHandler(cy_stc_usb_app_ctxt_t *pAppCtxt)
             memcpy(&rsp[4], &bytes, sizeof(bytes));
             return quad_send_ep0(pUsbdCtxt, rsp, (uint16_t)sizeof(rsp), wLength);
         }
+
+        case QUAD_CMD_AGC_SELECT:
+            /* wValue = 4-bit channel mask (bit n = AD8370 channel n); no data. */
+            Cy_QuadAgc_Select((uint8_t)pUsbdCtxt->setupReq.wValue);
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            return true;
+
+        case QUAD_CMD_AGC_GAIN:
+            /* wValue low byte = 8-bit AD8370 gain code; programs selected channels. */
+            Cy_QuadAgc_SetGain((uint8_t)pUsbdCtxt->setupReq.wValue);
+            Cy_USBD_SendACkSetupDataStatusStage(pUsbdCtxt);
+            return true;
 
         default:
             /* Not a quad command (or not yet implemented): let the caller stall. */
