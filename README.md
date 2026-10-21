@@ -99,6 +99,7 @@ FPGA_RESET                           # pulse PROGRAM_B, wait INIT_B high
 FPGA_LOAD(start)…(cont)…(end)        # push top.bin (2,192,012 bytes)
 FPGA_STATUS                          # verify bytes==2192012 && INIT_B high
 SI5345_LOAD(preamble); sleep >300ms; SI5345_LOAD(main); SI5345_LOAD(post)
+AGC_SELECT(mask=0xF); AGC_GAIN(code) # optional: set AD8370 gain (default all 4)
 ADC_CONFIG(block, dev=both)          # register 0x00 first; both ADS62P45
 ADC_TESTPAT(ramp)                    # internal digital ramp
 START_STREAM                         # link-train both links, then start HBDMA
@@ -197,8 +198,8 @@ reads `0xC0`. Base low-level codes reuse the RX888/SDDC numbering. See
 | `0xD2` | FPGA_STATUS | in | 8 B: INIT_B + bytes-loaded + loader state |
 | `0xE1` | ADC_CONFIG | out | `{addr,data}` records; `wValue` 0=both/1=AB/2=CD |
 | `0xE2` | ADC_TESTPAT | out | Test pattern: `wValue` 0=off / 1=ramp |
-| `0xF1` | AGC_SELECT | out | Select AD8370(s) *(v0.0.2)* |
-| `0xF2` | AGC_GAIN | out | Set AD8370 gain *(v0.0.2)* |
+| `0xF1` | AGC_SELECT | out | `wValue` = 4-bit channel mask (bit n = AD8370 n); default 0xF |
+| `0xF2` | AGC_GAIN | out | `wValue` low byte = 8-bit AD8370 gain code (bit7 = range) |
 | `0xFE` | GET_STATUS | in | Structured status/error block (below) |
 | `0xFF` | GET_VERSION | in | Firmware/build string |
 
@@ -315,6 +316,7 @@ host-provided bitstream out bit-banged `CCLK`/`DIN`:
 | *quad_fpga.c/.h* | Xilinx slave-serial FPGA loader (bit-banged) |
 | *quad_si5345.c/.h* | Si5345 paged-I2C clock loader |
 | *quad_adc.c/.h* | ADS62P45 serial config + ramp test pattern |
+| *quad_agc.c/.h* | AD8370 VGA serial gain control (bit-banged, 4 channels) |
 | *quad_stream.c/.h* | START/STOP_STREAM: LinkTrain (P4.3) + PHY training + HBDMA |
 | *cy_usb_app.c/.h* | Data-transfer logic, HBDMA channel + endpoint DMA setup |
 | *cy_usb_descriptors.c* | USB descriptors (VID/PID, endpoints) |
