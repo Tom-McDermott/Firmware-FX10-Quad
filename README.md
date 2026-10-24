@@ -70,22 +70,31 @@ companion `interface-contract-RESOLVED.md` for the full map):
 ## Using the code example
 
 This is a standard ModusToolbox&trade; application; build it from the command
-line (or import it into the Eclipse IDE / VS Code as usual).
+line (or import it into the Eclipse IDE / VS Code as usual). A ModusToolbox 3.x
+installation provides the `GCC_ARM` toolchain and the build tools, so no extra
+environment setup is needed.
 
 ```
-cd quad-fx10-firmware
-source /opt/infineon/settings.sh        # export CY_TOOLS_PATHS for the MTB tools
-make build TOOLCHAIN=GCC_ARM CY_COMPILER_GCC_ARM_DIR=/usr OBJCOPY_DIR=/usr/arm-none-eabi/bin
+cd Firmware-FX10-Quad
+make getlibs                      # first time only: fetches the SDK into ../mtb_shared
+make build TOOLCHAIN=GCC_ARM
 # -> build/APP_QUAD_FX10/Release/quad-fx10-firmware.{elf,hex}
 ```
 
 Program the resulting `.hex`/`.elf` onto the FX10 with the EZ-USB&trade; FX
 Control Center (USB bootloader) or a KitProg3/MiniProg over SWD.
 
-> **Note:** This offline tree builds against a sibling `../mtb_shared` (a symlink
-> to the pre-fetched SDK) rather than running `make getlibs`. The generated BSP,
-> linker scripts, and `libs/` are kept locally but are `.gitignore`d — a full
-> ModusToolbox checkout regenerates them.
+> **Note (non-standard toolchain location):** if your ARM GCC toolchain is not on
+> the default ModusToolbox path — e.g. an offline build against a system-installed
+> `arm-none-eabi-gcc` — point the build at it explicitly instead:
+>
+> ```
+> make build TOOLCHAIN=GCC_ARM \
+>     CY_COMPILER_GCC_ARM_DIR=/usr OBJCOPY_DIR=/usr/arm-none-eabi/bin
+> ```
+>
+> Adjust those paths to your system. These extra variables are not needed for a
+> normal ModusToolbox install.
 
 
 ## Operation (typical host sequence)
