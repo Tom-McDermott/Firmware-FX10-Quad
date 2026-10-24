@@ -913,11 +913,9 @@ Cy_USB_AppSetCfgCallback (
     cy_stc_usb_app_ctxt_t *pUsbApp;
     uint8_t *pActiveCfg, *pIntfDscr, *pEndpDscr;
     uint8_t index, numOfIntf, numOfEndp;
-#if (!LVDS_LB_EN)
-    cy_en_scb_i2c_status_t status = CY_SCB_I2C_SUCCESS;
-#else
+#if (LVDS_LB_EN)
     uint32_t intState;
-#endif /* (!LVDS_LB_EN) */
+#endif /* (LVDS_LB_EN) */
 
     pUsbApp = (cy_stc_usb_app_ctxt_t *)pAppCtxt;
     DBG_APP_INFO("SetCfgCb: Speed=%d\r\n", pUsbdCtxt->devSpeed);
@@ -945,28 +943,15 @@ Cy_USB_AppSetCfgCallback (
     pUsbApp->dmaBufferSize = HBDMA_BUFFER_SIZE;
     pUsbApp->streamingRate = FPS_DEFAULT;
 
-    /* Identify whether we are operating in LVDS WideLink to USB 2.x transfer mode. */
-    if ((lvdsContext.phyConfigP0->wideLink) && (pUsbApp->devSpeed <= CY_USBD_USB_DEV_HS)) {
-        pUsbApp->isLvdsWltoUsbHs = true;
-    } else {
-        pUsbApp->isLvdsWltoUsbHs = false;
-    }
-
-    /* Update DMA buffer size used by firmware */
-    status = Cy_I2C_Write(FPGASLAVE_ADDR, DEVICE0_OFFSET + DEVICE_BUFFER_SIZE_MSB_ADDRESS,
-            CY_USB_GET_MSB(pUsbApp->dmaBufferSize),
-            FPGA_I2C_ADDRESS_WIDTH, FPGA_I2C_DATA_WIDTH);
-    ASSERT_NON_BLOCK(status == CY_SCB_I2C_SUCCESS, status);
-
-    status = Cy_I2C_Write(FPGASLAVE_ADDR, DEVICE0_OFFSET + DEVICE_BUFFER_SIZE_LSB_ADDRESS,
-            CY_USB_GET_LSB(pUsbApp->dmaBufferSize),
-            FPGA_I2C_ADDRESS_WIDTH, FPGA_I2C_DATA_WIDTH);
-    ASSERT_NON_BLOCK(status == CY_SCB_I2C_SUCCESS, status);
-
-    /* Set the target streaming rate in FPS. */
-    status = Cy_I2C_Write(FPGASLAVE_ADDR, DEVICE0_OFFSET + DEVICE_FPS_ADDRESS, pUsbApp->streamingRate,
-            FPGA_I2C_ADDRESS_WIDTH, FPGA_I2C_DATA_WIDTH);
-    ASSERT_NON_BLOCK(status == CY_SCB_I2C_SUCCESS, status);
+    /*
+     * Quad board: there is no FPGA I2C slave, and the LVDS PHY is not brought up
+     * until START_STREAM (so lvdsContext.phyConfigP0 is NULL here). The FX20
+     * example's WideLink-to-USBHS detection dereferenced phyConfigP0, and the
+     * FPGA-I2C buffer-size / FPS writes targeted a slave that does not exist on
+     * this board -- both blocked SET_CONFIG and are removed. WideLink-to-HS does
+     * not apply, so this is always the plain SuperSpeed streaming case.
+     */
+    pUsbApp->isLvdsWltoUsbHs = false;
 #endif /* (!LVDS_LB_EN) */
 
     numOfIntf = Cy_USBD_FindNumOfIntf(pActiveCfg);
@@ -1017,33 +1002,15 @@ Cy_USB_AppSetCfgCallback (
     Cy_LVDS_GpifSetFwTrig(LVDSSS_LVDS, 1);
     Cy_SysLib_ExitCriticalSection(intState);
 #else
-    if (pUsbApp->isLvdsWltoUsbHs) {
-        /* LVDS WL to USB 2.x transfer: We need to override the DMA_RDY signal as GPIO so
-         * that LVDS ingress and USB egress transfers can be made non-overlapping.
-         */
-        Cy_LVDS_PhyGpioModeEnable(LVDSSS_LVDS, 0, FX_DMA_RDY_IO, CY_LVDS_PHY_GPIO_OUTPUT,
-                CY_LVDS_PHY_GPIO_NO_INTERRUPT);
-
-        DBG_APP_TRACE("CLR FWRDY\r\n");
-        pUsbApp->fwDmaReadyStatus = false;
-        Cy_LVDS_PhyGpioClr(LVDSSS_LVDS, 0, FX_DMA_RDY_IO);
-    } else {
-        /* Disable GPIO override on DMA ready signal. */
-        Cy_LVDS_PhyGpioModeDisable(LVDSSS_LVDS, 0, FX_DMA_RDY_IO);
-    }
-
-    /* Enable the data stream from the FPGA. */
-    DBG_APP_INFO("Enabling FPGA data stream\r\n");
-    status = Cy_I2C_Write(FPGASLAVE_ADDR,
-            DEVICE0_OFFSET + FPGA_DEVICE_STREAM_ENABLE_ADDRESS,
-            CAMERA_APP_ENABLE, FPGA_I2C_ADDRESS_WIDTH, FPGA_I2C_DATA_WIDTH);
-    ASSERT_NON_BLOCK(status == CY_SCB_I2C_SUCCESS, status);
-
-    if (pUsbApp->isLvdsWltoUsbHs) {
-        DBG_APP_TRACE("SET FWRDY\r\n");
-        pUsbApp->fwDmaReadyStatus = true;
-        Cy_LVDS_PhyGpioSet(LVDSSS_LVDS, 0, FX_DMA_RDY_IO);
-    }
+    /*
+     * Quad board: the LVDS PHY and the FPGA data stream are started by
+     * START_STREAM, not at SET_CONFIG. The FX20 example's DMA-ready PHY-GPIO
+     * setup touched the LVDS block before it is initialized, and the FPGA-I2C
+     * stream-enable write targeted a nonexistent slave -- both blocked
+     * SET_CONFIG and are removed. (For USB 2.x WideLink streaming the DMA-ready
+     * GPIO handling would be re-added in START_STREAM, but this board streams at
+     * SuperSpeed.)
+     */
 #endif /* LVDS_LB_EN */
 
     DBG_APP_INFO("SetCfgCb:End\r\n");
