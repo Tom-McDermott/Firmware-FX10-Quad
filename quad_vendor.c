@@ -252,9 +252,11 @@ bool Cy_Quad_VendorRqtHandler(cy_stc_usb_app_ctxt_t *pAppCtxt)
             if (!quad_recv_ep0(pUsbdCtxt, glQuadRxBuf, wLength)) {
                 return true;
             }
-            /* Reset the device once, just before the preamble block. */
+            /* Prepare the device once, just before the preamble block (ensures
+             * RSTB deasserted + page cache invalid; no hard reset -- see
+             * Cy_QuadSi5345_BeginLoad). */
             if (phase == QUAD_SI5345_PHASE_PREAMBLE) {
-                Cy_QuadSi5345_ResetPulse();
+                Cy_QuadSi5345_BeginLoad();
             }
             (void)Cy_QuadSi5345_WriteRecords(glQuadRxBuf, wLength);
             return true;

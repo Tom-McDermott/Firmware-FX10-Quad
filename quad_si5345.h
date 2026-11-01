@@ -52,8 +52,13 @@ extern "C" {
 #define QUAD_SI5345_PHASE_MAIN      (0x01u)
 #define QUAD_SI5345_PHASE_POSTAMBLE (0x02u)
 
-/* Configure the reset GPIO and pulse RSTB (active-low) to reset the device. */
-void Cy_QuadSi5345_ResetPulse(void);
+/*
+ * Prepare for a register-map load: configure the reset GPIO, ensure RSTB is
+ * deasserted (high), and invalidate the cached page. Does NOT hard-reset the
+ * device -- a hard reset reloads NVM and would overwrite the config being
+ * written (the ClockBuilder map does its own SOFT_RST in the postamble).
+ */
+void Cy_QuadSi5345_BeginLoad(void);
 
 /*
  * Write a block of {page, reg, data} records over I2C, managing the page-select
