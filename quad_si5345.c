@@ -57,17 +57,26 @@ static void si5345_init_reset_pin(void)
     glSi5345PinReady = true;
 }
 
-void Cy_QuadSi5345_ResetPulse(void)
+void Cy_QuadSi5345_BeginLoad(void)
 {
-    si5345_init_reset_pin();
-
-    /* Active-low RSTB: drive low, hold, release. */
-    Cy_GPIO_Clr(SI5345_RESET_PORT, SI5345_RESET_PIN);
-    Cy_SysLib_DelayUs(10);
-    Cy_GPIO_Set(SI5345_RESET_PORT, SI5345_RESET_PIN);
-    Cy_SysLib_Delay(1);         /* brief settle before I2C access */
-
-    glSi5345Page = -1;          /* device page is unknown after reset */
+    /*
+     * Do NOT hard-reset the Si5345 (RSTB low) before applying the register map.
+     *
+     * A hard reset (RSTB pin) reloads ALL registers from NVM, and that NVM
+     * download overwrites any register writes made before it completes -- the
+     * Si5345 reference manual is explicit that writes issued during the download
+     * are lost. The previous code pulsed RSTB and then waited only 1 ms, far
+     * short of the NVM-ready time, so the ClockBuilder register map could be
+     * silently clobbered: the writes ACK, the device never locks, and no clocks
+     * come out (SYSINCAL/LOL stay asserted).
+     *
+     * The ClockBuilder register map applied here is self-contained -- its
+     * postamble issues a SOFT_RST (0x001C) to apply the new configuration, which
+     * does not touch NVM. So we only ensure RSTB is deasserted (driven high) and
+     * invalidate the cached page; no hard reset, no NVM-ready wait.
+     */
+    si5345_init_reset_pin();    /* configures the pin and drives RSTB high */
+    glSi5345Page = -1;          /* page-select cache is unknown */
 }
 
 bool Cy_QuadSi5345_WriteRecords(const uint8_t *records, uint32_t len)
