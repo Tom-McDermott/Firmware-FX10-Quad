@@ -51,10 +51,25 @@ extern "C" {
 
 #define QUAD_ADC_RECORD_LEN (2u)    /* {addr, data} per record */
 
-/* ADS62P45 test-pattern register (interface contract §6). */
-#define QUAD_ADC_REG_TESTPAT (0x16u)
-#define QUAD_ADC_TESTPAT_OFF (0x00u)
-#define QUAD_ADC_TESTPAT_RAMP (0x40u)
+/*
+ * ADS62P45 test-pattern register (interface contract §6; ADS62P45 datasheet
+ * register 0x16). Fields: D[2:0] = test pattern (100b = digital ramp),
+ * D4 = data format (0 = 2's complement, 1 = straight binary). So:
+ *   0x14 = ramp, straight-binary (monotonic 0..0x3FFF -- matches the streaming
+ *          ramp-monotonicity check)
+ *   0x04 = ramp, 2's-complement
+ * (An earlier value of 0x40 was wrong -- bit 6 is not in this register's fields.
+ * Caught by Tom/N5EG and confirmed against the datasheet.)
+ *
+ * Note: D4 also selects the NORMAL output data format, not just the ramp. So
+ * TESTPAT_OFF (0x00) reverts to 2's-complement; if the data path expects
+ * straight binary, turn the pattern off with 0x10 instead (and pair with the
+ * straight-binary RAMP 0x14). Pick RAMP/OFF to match the intended data format.
+ */
+#define QUAD_ADC_REG_TESTPAT     (0x16u)
+#define QUAD_ADC_TESTPAT_OFF     (0x00u)   /* no pattern, 2's-complement format */
+#define QUAD_ADC_TESTPAT_RAMP    (0x14u)   /* ramp, straight-binary format      */
+#define QUAD_ADC_TESTPAT_RAMP_2C (0x04u)   /* ramp, 2's-complement format       */
 
 /* Configure the serial GPIOs to their idle states (idempotent). */
 void Cy_QuadAdc_InitPins(void);
